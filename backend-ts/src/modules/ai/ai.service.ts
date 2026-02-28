@@ -79,7 +79,7 @@ export async function parseExpenseNLP(text: string, groupId: string, userId: str
             }
         });
 
-        const responseText = typeof response.text === 'function' ? response.text() : response.text;
+        const responseText = response.text;
         if (responseText) {
             parsedData = JSON.parse(responseText);
         }
@@ -135,7 +135,7 @@ export async function generateGroupSummary(groupId: string, balances: any) {
             model: AI_MODEL,
             contents: prompt
         });
-        textOutput = typeof response.text === 'function' ? response.text() : (response.text || textOutput);
+        textOutput = response.text || textOutput;
     } catch (e) {
         console.warn(`Gemini Summary Error [${AI_MODEL}]:`, e);
         textOutput = 'Outstanding balances exist in this group.';
@@ -225,7 +225,7 @@ export async function getUserSpendingInsights(userId: string) {
             model: AI_MODEL,
             contents: prompt
         });
-        textOutput = typeof response.text === 'function' ? response.text() : (response.text || textOutput);
+        textOutput = response.text || textOutput;
     } catch (e) {
         console.warn(`Gemini Insights Error [${AI_MODEL}]:`, e);
         textOutput = 'Spending tracking is active!';
@@ -275,7 +275,7 @@ export async function generateAndSendMonthlySummary(userId: string, email: strin
             model: AI_MODEL,
             contents: prompt
         });
-        aiSummaryHtml = typeof response.text === 'function' ? response.text() : (response.text || aiSummaryHtml);
+        aiSummaryHtml = response.text || aiSummaryHtml;
     } catch (error) {
         console.warn(`Gemini Email Error [${AI_MODEL}]:`, error);
         isFallback = true;
