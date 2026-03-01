@@ -10,6 +10,8 @@ import { getCurrentUser } from '../auth/auth.service.js';
 import Expense from '../../models/expense.model.js';
 
 const resend = new Resend(process.env.RESEND_API_KEY || 're_dummy');
+const MAIL_FROM = process.env.MAIL_FROM || 'Splitwise AI <onboarding@resend.dev>';
+
 
 // Simple in-memory cache for group summaries
 const summaryCache = new Map<string, { summary: any; expiry: number }>();
@@ -25,7 +27,7 @@ const AI_MODEL = 'gemini-2.0-flash';
 function formatAIError(error: any): string {
     const msg = error.message || '';
     if (msg.includes('429') || msg.toLowerCase().includes('quota') || msg.toLowerCase().includes('rate')) {
-        return 'Rate limit reached (Free Tier). Try again in a minute.';
+        return 'rate limit exceeded';
     }
     if (msg.includes('401') || msg.toLowerCase().includes('key')) {
         return 'API key is invalid or missing.';
@@ -38,6 +40,17 @@ function formatAIError(error: any): string {
     }
     return `AI Error: ${msg.split('\n')[0].substring(0, 100)}`;
 }
+
+/**
+ * Clean AI-generated HTML (removes markdown code blocks if present)
+ */
+function cleanAIHtml(html: string): string {
+    return html
+        .replace(/```html/gi, '')
+        .replace(/```/g, '')
+        .trim();
+}
+
 
 /**
  * AI NLP Parse Service
@@ -265,7 +278,11 @@ export async function generateAndSendMonthlySummary(userId: string, email: strin
         date: e.date
     }));
 
-    const prompt = `You are a financial assistant. Generate a friendly HTML email summary: ${JSON.stringify(summaryData)}`;
+    const prompt = `
+        You are a financial assistant. Generate a friendly HTML email summary of this spending data.
+        Return ONLY the HTML code. Do NOT wrap it in markdown backticks.
+        Data: ${JSON.stringify(summaryData)}
+    `;
 
     let isFallback = false;
     let warning = '';
@@ -273,10 +290,12 @@ export async function generateAndSendMonthlySummary(userId: string, email: strin
     try {
         const response = await gemini.models.generateContent({
             model: AI_MODEL,
-            contents: prompt
+            contents: [{ role: 'user', parts: [{ text: prompt }] }]
         });
-        aiSummaryHtml = response.text || aiSummaryHtml;
+        const rawText = response.text || '';
+        aiSummaryHtml = cleanAIHtml(rawText) || aiSummaryHtml;
     } catch (error) {
+
         console.warn(`Gemini Email Error [${AI_MODEL}]:`, error);
         isFallback = true;
         warning = formatAIError(error);
@@ -291,19 +310,28 @@ export async function generateAndSendMonthlySummary(userId: string, email: strin
         `;
     }
 
+    const recipient = process.env.MAIL_TO_OVERRIDE || email;
+
     try {
         const { data, error } = await resend.emails.send({
-            from: 'Splitwise AI <onboarding@resend.dev>',
-            to: email,
+            from: MAIL_FROM,
+            to: recipient,
             subject: 'Monthly Spending Summary ✨',
             html: aiSummaryHtml,
         });
 
         if (error) {
             console.error('Resend Error:', error);
-            const resendError = error.message || 'Verification required';
+            let resendError = error.message || 'Verification required';
+
+            // Add specific tip for Resend Free Tier
+            if (MAIL_FROM.includes('onboarding@resend.dev')) {
+                resendError += ' (Note: Resend free tier only sends to the account owner\'s email address. To send to others, you must verify your domain or use the registered email.)';
+            }
+
             return { sent: false, data: null, expensesCount: summaryData.length, isFallback: true, warning: `Email Error: ${resendError}` };
         }
+
 
         return { sent: true, data, expensesCount: summaryData.length, isFallback, warning };
     } catch (err) {

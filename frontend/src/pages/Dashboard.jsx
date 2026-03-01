@@ -42,9 +42,17 @@ export default function Dashboard() {
             const { sent, isFallback, warning } = res.data;
 
             if (!sent) {
-                toast.warning(warning || 'Verification required. Logged to console.');
+                if (warning === 'rate limit exceeded') {
+                    toast.error('rate limit exceeded');
+                } else {
+                    toast.warning(warning || 'Verification required. Logged to console.');
+                }
             } else if (isFallback) {
-                toast.warning(warning || 'Sent a standard summary instead of an AI-generated one.');
+                if (warning === 'rate limit exceeded') {
+                    toast.error('rate limit exceeded');
+                } else {
+                    toast.warning(warning || 'Sent a standard summary instead of an AI-generated one.');
+                }
             } else {
                 toast.success('Check your inbox for the AI summary! 📧');
             }

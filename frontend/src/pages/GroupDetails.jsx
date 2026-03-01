@@ -114,7 +114,11 @@ export default function GroupDetails() {
                 setSplitMode('equal');
             }
             if (data.isFallback) {
-                toast.warning(data.warning || 'AI is temporarily unavailable, using fallback data.');
+                if (data.warning === 'rate limit exceeded') {
+                    toast.error('rate limit exceeded');
+                } else {
+                    toast.warning(data.warning || 'AI is temporarily unavailable, using fallback data.');
+                }
             } else {
                 toast.success('Magic Input applied!');
             }
