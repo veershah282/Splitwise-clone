@@ -25,9 +25,9 @@ A full-stack recreation of Splitwise featuring natural language expense parsing 
 cd backend-ts
 npm install
 ```
-Create a `.env` file in `backend-ts/` with your database and API keys.
-
-Run the backend in dev mode (automatically seeds demo data):
+1. Create a `.env` file in `backend-ts/` (refer to `.env.example`).
+2. Add your `MONGODB_URI`, `GEMINI_API_KEY`, and `RESEND_API_KEY`.
+3. Run in dev mode (automatically seeds demo data):
 ```bash
 npm run dev
 ```
@@ -36,12 +36,30 @@ npm run dev
 ```bash
 cd frontend
 npm install
+```
+1. Create a `.env` file in `frontend/` (refer to `.env.example`).
+2. Set `VITE_API_URL=http://localhost:5000/api`.
+3. Run the frontend:
+```bash
 npm run dev
 ```
 
-## Testing
+## 🚀 Deployment
+
+The project is structured for easy deployment to platforms like **Render**, **Vercel**, or **Netlify**.
+
+### Frontend Deployment
+- **Helper Files**: The `frontend` includes `vercel.json` and `public/_redirects` to handle Single Page Application (SPA) routing.
+- **Environment Variable**: Ensure you set `VITE_API_URL` in your hosting dashboard pointing to your production API.
+
+### Backend Deployment
+- **CORS**: Update the `ALLOWED_ORIGINS` environment variable to include your production frontend URL.
+- **Port**: The backend automatically uses `process.env.PORT` or defaults to `5000`.
+
+## 🧪 Testing
 Run the backend test suite:
 ```bash
 cd backend-ts
 npm run test
 ```
+
