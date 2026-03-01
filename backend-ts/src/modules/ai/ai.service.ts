@@ -18,13 +18,21 @@ const summaryCache = new Map<string, { summary: any; expiry: number }>();
 const CACHE_TTL = 30 * 60 * 1000; // 30 minutes
 
 // Centralized model name for easy updates
-const AI_MODEL = 'gemini-2.0-flash';
+const AI_MODEL = 'gemini-2.5-flash';
+
 
 /**
  * Robust Error Formatter for AI Features
  * Extracts specific error reasons for user feedback
  */
 function formatAIError(error: any): string {
+    // Log the full error for debugging purposes when rate limits are hit
+    console.error('--- AI DEBUG ERROR START ---');
+    console.error('Message:', error.message);
+    console.error('Status:', error.status || error.statusCode);
+    console.error('Full Error:', JSON.stringify(error, null, 2));
+    console.error('--- AI DEBUG ERROR END ---');
+
     const msg = error.message || '';
     if (msg.includes('429') || msg.toLowerCase().includes('quota') || msg.toLowerCase().includes('rate')) {
         return 'rate limit exceeded';
@@ -40,6 +48,7 @@ function formatAIError(error: any): string {
     }
     return `AI Error: ${msg.split('\n')[0].substring(0, 100)}`;
 }
+
 
 /**
  * Clean AI-generated HTML (removes markdown code blocks if present)
@@ -146,8 +155,9 @@ export async function generateGroupSummary(groupId: string, balances: any) {
     try {
         const response = await gemini.models.generateContent({
             model: AI_MODEL,
-            contents: prompt
+            contents: [{ role: 'user', parts: [{ text: prompt }] }]
         });
+
         textOutput = response.text || textOutput;
     } catch (e) {
         console.warn(`Gemini Summary Error [${AI_MODEL}]:`, e);
@@ -236,8 +246,9 @@ export async function getUserSpendingInsights(userId: string) {
     try {
         const response = await gemini.models.generateContent({
             model: AI_MODEL,
-            contents: prompt
+            contents: [{ role: 'user', parts: [{ text: prompt }] }]
         });
+
         textOutput = response.text || textOutput;
     } catch (e) {
         console.warn(`Gemini Insights Error [${AI_MODEL}]:`, e);
