@@ -44,19 +44,7 @@ npm install
 npm run dev
 ```
 
-## 🚀 Deployment
-
-The project is structured for easy deployment to platforms like **Render**, **Vercel**, or **Netlify**.
-
-### Frontend Deployment
-- **Helper Files**: The `frontend` includes `vercel.json` and `public/_redirects` to handle Single Page Application (SPA) routing.
-- **Environment Variable**: Ensure you set `VITE_API_URL` in your hosting dashboard pointing to your production API.
-
-### Backend Deployment
-- **CORS**: Update the `ALLOWED_ORIGINS` environment variable to include your production frontend URL.
-- **Port**: The backend automatically uses `process.env.PORT` or defaults to `5000`.
-
-## 🧪 Testing
+## Testing
 Run the backend test suite:
 ```bash
 cd backend-ts
