@@ -12,15 +12,6 @@ vi.mock('../src/models/aiLog.model');
 vi.mock('../src/models/expense.model');
 vi.mock('../src/modules/expenses/expenses.service');
 vi.mock('../src/modules/auth/auth.service');
-vi.mock('resend', () => {
-    return {
-        Resend: class MockResend {
-            emails = {
-                send: vi.fn().mockResolvedValue({ data: { id: 'test_id' }, error: null })
-            }
-        }
-    };
-});
 
 describe('AI Service', () => {
     beforeEach(() => {
@@ -77,29 +68,5 @@ describe('AI Service', () => {
         });
     });
 
-    describe('generateAndSendMonthlySummary', () => {
-        it('should throw error if no expenses found this month', async () => {
-            (Expense.find as any).mockResolvedValue([]);
-            await expect(aiService.generateAndSendMonthlySummary('user1', 'test@test.com')).rejects.toThrow(AIServiceError);
-        });
 
-        it('should generate summary using gemini and send via resend', async () => {
-            (Expense.find as any).mockResolvedValue([
-                { description: 'Dinner', amount: 50, date: new Date() }
-            ]);
-
-            const mockGenerateContent = vi.fn().mockResolvedValue({
-                text: '<p>You spent 50</p>'
-            });
-            vi.spyOn(geminiLib.gemini.models, 'generateContent').mockImplementation(mockGenerateContent);
-
-            // Resend is mocked globally at the top
-
-            const result = await aiService.generateAndSendMonthlySummary('user1', 'test@test.com');
-
-            expect(mockGenerateContent).toHaveBeenCalled();
-            expect(result.sent).toBe(true);
-            expect(result.expensesCount).toBe(1);
-        });
-    });
 });

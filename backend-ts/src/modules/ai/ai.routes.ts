@@ -21,7 +21,6 @@ router.use(aiLimiter);
 
 router.post('/parse-expense', validateBody(parseExpenseSchema), aiController.parseExpense);
 router.post('/parse-expense/confirm', validateBody(confirmParseSchema), aiController.confirmParse);
-router.post('/monthly-summary-email', aiController.sendMonthlySummaryEmail);
 router.get('/groups/:id/summary', aiController.getGroupSummary);
 router.get('/users/me/insights', aiController.getUserInsights);
 

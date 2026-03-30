@@ -1,6 +1,5 @@
 import { gemini } from '../../lib/gemini.js';
 import { Type } from '@google/genai';
-import { Resend } from 'resend';
 import Group from '../../models/group.model.js';
 import AIParseLog from '../../models/aiLog.model.js';
 import { NotFoundError, AIServiceError } from '../../lib/errors.js';
@@ -9,8 +8,6 @@ import { createExpense } from '../expenses/expenses.service.js';
 import { getCurrentUser } from '../auth/auth.service.js';
 import Expense from '../../models/expense.model.js';
 
-const resend = new Resend(process.env.RESEND_API_KEY || 're_dummy');
-const MAIL_FROM = process.env.MAIL_FROM || 'Splitwise AI <onboarding@resend.dev>';
 
 
 // Simple in-memory cache for group summaries
@@ -265,88 +262,3 @@ export async function getUserSpendingInsights(userId: string) {
     };
 }
 
-/**
- * Generate and Send Monthly Summary Email
- */
-export async function generateAndSendMonthlySummary(userId: string, email: string) {
-    const startOfMonth = new Date();
-    startOfMonth.setDate(1);
-    startOfMonth.setHours(0, 0, 0, 0);
-
-    const expenses = await Expense.find({
-        isDeleted: { $ne: true },
-        date: { $gte: startOfMonth },
-        $or: [{ paidBy: userId }, { 'splitDetails.user': userId }]
-    });
-
-    if (expenses.length === 0) {
-        throw new AIServiceError('No expenses found for this month.', 'NO_DATA');
-    }
-
-    const summaryData = expenses.map(e => ({
-        description: e.description,
-        amount: e.amount,
-        date: e.date
-    }));
-
-    const prompt = `
-        You are a financial assistant. Generate a friendly HTML email summary of this spending data.
-        Return ONLY the HTML code. Do NOT wrap it in markdown backticks.
-        Data: ${JSON.stringify(summaryData)}
-    `;
-
-    let isFallback = false;
-    let warning = '';
-    let aiSummaryHtml = '<p>Your monthly summary.</p>';
-    try {
-        const response = await gemini.models.generateContent({
-            model: AI_MODEL,
-            contents: [{ role: 'user', parts: [{ text: prompt }] }]
-        });
-        const rawText = response.text || '';
-        aiSummaryHtml = cleanAIHtml(rawText) || aiSummaryHtml;
-    } catch (error) {
-
-        console.warn(`Gemini Email Error [${AI_MODEL}]:`, error);
-        isFallback = true;
-        warning = formatAIError(error);
-        aiSummaryHtml = `
-            <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; color: #333;">
-                <h2 style="color: #5bc5a7;">Monthly Spending Summary (Demo Support)</h2>
-                <p>Hi there! Here is a quick breakdown of your activity:</p>
-                <ul>
-                    ${summaryData.map(e => `<li><strong>${e.description}</strong>: ₹${e.amount}</li>`).join('')}
-                </ul>
-            </div>
-        `;
-    }
-
-    const recipient = process.env.MAIL_TO_OVERRIDE || email;
-
-    try {
-        const { data, error } = await resend.emails.send({
-            from: MAIL_FROM,
-            to: recipient,
-            subject: 'Monthly Spending Summary ✨',
-            html: aiSummaryHtml,
-        });
-
-        if (error) {
-            console.error('Resend Error:', error);
-            let resendError = error.message || 'Verification required';
-
-            // Add specific tip for Resend Free Tier
-            if (MAIL_FROM.includes('onboarding@resend.dev')) {
-                resendError += ' (Note: Resend free tier only sends to the account owner\'s email address. To send to others, you must verify your domain or use the registered email.)';
-            }
-
-            return { sent: false, data: null, expensesCount: summaryData.length, isFallback: true, warning: `Email Error: ${resendError}` };
-        }
-
-
-        return { sent: true, data, expensesCount: summaryData.length, isFallback, warning };
-    } catch (err) {
-        console.error('Email Send Crash:', err);
-        return { sent: false, data: null, expensesCount: summaryData.length, isFallback: true, warning: 'Email system error. Logged to console.' };
-    }
-}

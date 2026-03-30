@@ -28,38 +28,37 @@ export default function Dashboard() {
     const navigate = useNavigate();
     const { logout, user } = useContext(AuthContext);
     const toast = useToast();
-    const [sendingEmail, setSendingEmail] = useState(false);
+    const [generatingInsights, setGeneratingInsights] = useState(false);
+    const [insightsData, setInsightsData] = useState(null);
     const [balances, setBalances] = useState({ totalOwedToYou: 0, totalYouOwe: 0 });
     const [groups, setGroups] = useState([]);
     const [spendingData, setSpendingData] = useState([]);
     const [activity, setActivity] = useState([]);
     const [loading, setLoading] = useState(true);
 
-    const handleSendMonthlySummary = async () => {
-        setSendingEmail(true);
+    const handleGenerateInsights = async () => {
+        setGeneratingInsights(true);
         try {
-            const res = await api.post('/ai/monthly-summary-email');
-            const { sent, isFallback, warning } = res.data;
+            const res = await api.get('/ai/users/me/insights');
+            const { insights, isFallback, warning } = res.data;
 
-            if (!sent) {
+            if (isFallback) {
                 if (warning === 'rate limit exceeded') {
                     toast.error('rate limit exceeded');
                 } else {
-                    toast.warning(warning || 'Verification required. Logged to console.');
-                }
-            } else if (isFallback) {
-                if (warning === 'rate limit exceeded') {
-                    toast.error('rate limit exceeded');
-                } else {
-                    toast.warning(warning || 'Sent a standard summary instead of an AI-generated one.');
+                    toast.warning(warning || 'Standard insights generated.');
                 }
             } else {
-                toast.success('Check your inbox for the AI summary! 📧');
+                toast.success('Insights generated successfully! 💡');
+            }
+            // Show the insights in a nice text box modal
+            if (insights) {
+                setInsightsData(insights);
             }
         } catch (err) {
-            toast.error(err.response?.data?.error?.message || 'Failed to send email summary');
+            toast.error(err.response?.data?.error?.message || 'Failed to generate insights');
         } finally {
-            setSendingEmail(false);
+            setGeneratingInsights(false);
         }
     };
 
@@ -100,7 +99,49 @@ export default function Dashboard() {
     );
 
     return (
-        <div className="min-h-screen bg-gray-50 flex flex-col">
+        <div className="min-h-screen bg-gray-50 flex flex-col relative">
+            {/* Insights Modal overlay */}
+            {insightsData && (
+                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                    <div className="bg-white rounded-3xl shadow-xl w-full max-w-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+                        <div className="p-6 md:p-8 flex flex-col h-full max-h-[80vh]">
+                            <div className="flex items-center justify-between mb-6">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-12 h-12 bg-purple-100 rounded-2xl flex items-center justify-center text-purple-600">
+                                        <span className="text-2xl leading-none">💡</span>
+                                    </div>
+                                    <div>
+                                        <h2 className="text-2xl font-bold text-gray-800">Financial Insights</h2>
+                                        <p className="text-sm text-gray-500 font-medium">AI-powered analysis of your spending</p>
+                                    </div>
+                                </div>
+                                <button
+                                    onClick={() => setInsightsData(null)}
+                                    className="w-10 h-10 bg-gray-100 hover:bg-gray-200 text-gray-500 rounded-full flex items-center justify-center transition-colors"
+                                >
+                                    ✕
+                                </button>
+                            </div>
+
+                            <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar">
+                                <div className="text-gray-700 bg-purple-50/50 p-6 rounded-2xl border border-purple-100/50 leading-relaxed whitespace-pre-wrap font-medium">
+                                    {insightsData}
+                                </div>
+                            </div>
+
+                            <div className="mt-6 pt-6 border-t border-gray-100 flex justify-end">
+                                <button
+                                    onClick={() => setInsightsData(null)}
+                                    className="bg-gray-900 text-white font-bold px-8 py-3 rounded-xl hover:bg-gray-800 transition-all shadow-sm"
+                                >
+                                    Close Insights
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {/* Top Navbar */}
             <nav className="bg-white border-b px-8 py-3 flex items-center justify-between sticky top-0 z-10 shadow-sm">
                 <div className="flex items-center gap-2 cursor-pointer" onClick={() => navigate('/')}>
@@ -134,12 +175,12 @@ export default function Dashboard() {
                     <h1 className="text-2xl font-bold text-gray-800">Dashboard</h1>
                     <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto">
                         <button
-                            onClick={handleSendMonthlySummary}
-                            disabled={sendingEmail}
+                            onClick={handleGenerateInsights}
+                            disabled={generatingInsights}
                             className="bg-purple-100 text-purple-700 font-bold px-6 py-2.5 rounded-xl hover:bg-purple-200 transition-all flex items-center gap-2 shadow-sm disabled:opacity-50"
                         >
-                            <span className="text-xl leading-none">✨</span>
-                            {sendingEmail ? 'Sending...' : 'Email AI Summary'}
+                            <span className="text-xl leading-none">💡</span>
+                            {generatingInsights ? 'Generating...' : 'Generate Financial Insights'}
                         </button>
                         <button
                             onClick={() => navigate('/create')}

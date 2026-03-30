@@ -2,7 +2,6 @@ import { Request, Response } from 'express';
 import * as aiService from './ai.service.js';
 import * as groupsService from '../groups/groups.service.js';
 import type { ParseExpenseInput, ConfirmParseInput } from './ai.schemas.js';
-import User from '../../models/user.model.js';
 import { NotFoundError } from '../../lib/errors.js';
 
 export async function parseExpense(req: Request, res: Response): Promise<void> {
@@ -37,12 +36,3 @@ export async function getUserInsights(req: Request, res: Response): Promise<void
     res.json({ success: true, data: result });
 }
 
-export async function sendMonthlySummaryEmail(req: Request, res: Response): Promise<void> {
-    const userId = req.user!.id;
-    const user = await User.findById(userId);
-    if (!user) throw new NotFoundError('User');
-
-    // Using user.email for the target (note: with Resend free tier, this needs to be a verified domain/address)
-    const result = await aiService.generateAndSendMonthlySummary(userId, user.email);
-    res.json({ success: true, data: result });
-}

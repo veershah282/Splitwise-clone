@@ -1,5 +1,7 @@
 # Splitwise Clone with AI Features
 
+![Dashboard Screenshot](./screenshot.png)
+
 A full-stack recreation of Splitwise featuring natural language expense parsing and automated monthly summaries.
 
 ## Key Features
@@ -8,7 +10,7 @@ A full-stack recreation of Splitwise featuring natural language expense parsing 
 - **Expense Tracking:** Add expenses and split them among members.
 - **Settlements:** Settle debts and track payments.
 - **AI Expense Parsing:** "Magic Input" for adding expenses using natural language.
-- **AI Monthly Summaries:** Automatic personalized spending summaries sent via email.
+- **AI Financial Insights:** Generate personalized spending insights at the click of a button.
 - **Demo Access:** One-click login buttons for quick access.
 
 ## Core Stack
@@ -16,7 +18,6 @@ A full-stack recreation of Splitwise featuring natural language expense parsing 
 - **Backend:** Node.js with Express and TypeScript
 - **Database:** MongoDB
 - **AI:** Google Gemini
-- **Email:** Resend
 
 ## Getting Started
 
@@ -26,7 +27,7 @@ cd backend-ts
 npm install
 ```
 1. Create a `.env` file in `backend-ts/` (refer to `.env.example`).
-2. Add your `MONGODB_URI`, `GEMINI_API_KEY`, and `RESEND_API_KEY`.
+2. Add your `MONGODB_URI` and `GEMINI_API_KEY`.
 3. Run in dev mode (automatically seeds demo data):
 ```bash
 npm run dev
